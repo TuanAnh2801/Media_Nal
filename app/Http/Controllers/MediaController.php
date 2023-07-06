@@ -1,17 +1,15 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use App\Models\Media;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
-use App\Http\Controllers\Controller;
+use App\Http\Requests\ImageRequest;
 use http\Env\Response;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
-use Illuminate\View\View;
-use Illuminate\Support\Facades\Validator;
 
-class   MediaController extends Controller
+class  MediaController extends BaseController
 {
     /**
      * Display a listing of the resource.
@@ -19,7 +17,7 @@ class   MediaController extends Controller
     public function index()
     {
         $media = Media::all();
-        return \response()->json(['data'=>$media]);
+        return \response()->json(['data' => $media]);
     }
 
     /**
@@ -33,36 +31,25 @@ class   MediaController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(ImageRequest $request)
     {
-        $dir = 'uploads/'. date('Y/m/d');
-        $dir1 = 'images/'. date('Y/m/d');
-
-        $request->validate([
-            'avatar' => 'image|mimes:png,jpg,svg|max:10240',
-
-        ]);
-        $media = new Media();
-
-        $imageName = date('Ymd') .  Str::random(2);
-        if ($request->avatar){
-            $request->avatar->storeAs($dir1, $imageName);
-            $request->avatar->move(public_path($dir), $imageName);
-            $path = 'uploads/' . date('Y/m/d/')  . $imageName;
+        $avatar = $request->avatar;
+        $dir = 'uploads/' . date('Y/m/d');
+        $media = new Media();   
+        $imageName = Str::random(7) . pathinfo($avatar, PATHINFO_EXTENSION);
+        if ($avatar) {
+            $avatar->move(public_path($dir), $imageName);
+            $path = 'uploads/' . date('Y/m/d/') . $imageName;
             $url_image = url($path);
             $media->avatar = $imageName;
             $media->path = $path;
             $media->url_path = $url_image;
         }
         $media->save();
-        $respond = [
-          'message'=> 'create success'  ,
-           'media'=>$media
-        ];
         if ($media) {
-            return \response()->json($respond);
+            return $this->handleRespondSuccess('create success', $media);
         } else {
-            return \response()->json(['error' => 'create false']);
+            return $this->handleRespondError('create false');
 
         }
     }
@@ -88,28 +75,23 @@ class   MediaController extends Controller
      */
     public function update(Media $media, Request $request)
     {
-        $dir_public = 'uploads/'. date('Y/m/d');
-        $dir_storage = 'public/images/'. date('Y/m/d');
-
-        if ($request->avatar) {
+        $dir_public = 'uploads/' . date('Y/m/d');
+        $avatar = $request->avatar;
+        if ($avatar) {
             $imagePath = $media->path;
-            $imageName = date('Ymd') . Str::random(2);
-            $path = 'uploads/' . date('Y/m/d/')  . $imageName;
+            $imageName = Str::random(7) . pathinfo($avatar, PATHINFO_EXTENSION);
+            $path = 'uploads/' . date('Y/m/d/') . $imageName;
             $url_image = asset($path);
-            $request->avatar->storeAs($dir_storage, $imageName);
-            $request->avatar->move(public_path($dir_public), $imageName);
+            $avatar->move(public_path($dir_public), $imageName);
             $media->avatar = $imageName;
             $media->path = $path;
             $media->url_path = $url_image;
             $media->save();
             File::delete($imagePath);
-            $respond = [
-                'message'=> 'update success'  ,
-                'media'=>$media
-            ];
-            return \response()->json($respond);
+
+            return $this->handleRespondSuccess('update success', $media);
         }
-            return \response()->json(['message'=>'update image please!']);
+        return $this->handleRespondError('please enter photo');
 
     }
 
@@ -118,16 +100,13 @@ class   MediaController extends Controller
      */
     public function destroy(Media $media)
     {
-
         $delete = $media->delete();
         $imagePath = $media->path;
         File::delete($imagePath);
         if ($delete) {
-            return \response()->json(['success' => 'delete success']);
+            return $this->handleRespondSuccess('delete success', null);
         } else {
-            return \response()->json(['error' => 'delete false']);
-
-
+            return $this->handleRespondError('delete false');
         }
 
     }
