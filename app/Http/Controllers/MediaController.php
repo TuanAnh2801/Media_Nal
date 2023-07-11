@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Media;
 use Illuminate\Support\Str;
 use App\Http\Requests\ImageRequest;
-use http\Env\Response;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 
@@ -35,23 +34,20 @@ class  MediaController extends BaseController
     {
         $avatar = $request->avatar;
         $dir = 'uploads/' . date('Y/m/d');
-        $media = new Media();   
         $imageName = Str::random(7) . pathinfo($avatar, PATHINFO_EXTENSION);
-        if ($avatar) {
+        if (!$avatar){
+            return $this->handleRespondError('create false');
+        }
+            $media = new Media();
             $avatar->move(public_path($dir), $imageName);
             $path = 'uploads/' . date('Y/m/d/') . $imageName;
             $url_image = url($path);
             $media->avatar = $imageName;
             $media->path = $path;
             $media->url_path = $url_image;
-        }
-        $media->save();
-        if ($media) {
+            $media->save();
             return $this->handleRespondSuccess('create success', $media);
-        } else {
-            return $this->handleRespondError('create false');
 
-        }
     }
 
     /**
@@ -77,21 +73,20 @@ class  MediaController extends BaseController
     {
         $dir_public = 'uploads/' . date('Y/m/d');
         $avatar = $request->avatar;
-        if ($avatar) {
-            $imagePath = $media->path;
-            $imageName = Str::random(7) . pathinfo($avatar, PATHINFO_EXTENSION);
-            $path = 'uploads/' . date('Y/m/d/') . $imageName;
-            $url_image = asset($path);
-            $avatar->move(public_path($dir_public), $imageName);
-            $media->avatar = $imageName;
-            $media->path = $path;
-            $media->url_path = $url_image;
-            $media->save();
-            File::delete($imagePath);
-
-            return $this->handleRespondSuccess('update success', $media);
+        if (!$avatar) {
+            return $this->handleRespondError('please enter photo');
         }
-        return $this->handleRespondError('please enter photo');
+        $imagePath = $media->path;
+        $imageName = Str::random(7) . pathinfo($avatar, PATHINFO_EXTENSION);
+        $path = 'uploads/' . date('Y/m/d/') . $imageName;
+        $url_image = asset($path);
+        $avatar->move(public_path($dir_public), $imageName);
+        $media->avatar = $imageName;
+        $media->path = $path;
+        $media->url_path = $url_image;
+        $media->save();
+        File::delete($imagePath);
+        return $this->handleRespondSuccess('update success', $media);
 
     }
 
